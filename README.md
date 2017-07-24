@@ -1,19 +1,39 @@
-# ticketswap-watch
-This script check Ticketswap periodically for new ticket available on sale and gives notification on your computer.
+# Ticketswap-Crawler
+ORIGINAL CREDITS TO: ducdigital
 
-This works with tickets that have variations in their ticket.
+Do you want to go to an amazing festival but the tickets are sold out?
+Are you tired to check TicketSwap every minute (or even every few seconds) for a new ticket?
+
+The TicketSwap Crawler does exactly this for you (and it never gets tired)!
+
+This smart bot opens your default browser window as soon as you receive as there is a new ticket available!
+
+Note: The bot only opens the page with the available ticket, and you have to reserve the ticket yourself!
+...or get a macro player such as 'Keyboard Maestro' and execute this little javascript code when the browser get activated... $('.btn-buy:not(loading)')[0].click();
 
 # How to use
 
-- Pull the script
-- Change your event url in the script.
+- Install node.js
+- Get the required modules/packages.
 - Run `node app.js`
-- Profit!
+- Optional: Set up a macro to reserve the ticket.
+- Enjoy your event!
 
-# Optional stuff:
+# Settings:
 
-You can also change the check interval in the end of the file, currently this script run every `200000ms`. You can change this number but any lower number is not recomended since ticketswap has a anti robot system to prevent fetching. In this case you will have to visit their webpage and click `I am not a robot` for the script to work again.
+The most important change from the original script, is that this bot runs only one instance at the time, in order to avoid multiple calls and avoid to get captcha check. (My personal testing found that checking 2 every seconds works fine, less than that makes it more probable to get banned).
+
+* Times are in seconds
+
+- CHECK_INTERVAL: Time used to check for new tickets.
+- FOUND_INTERVAL: Little pause when a ticket is found (to give time to the macro to reserve the ticket).
+- ROBOT_INTERVAL: Time to sleep/wait when captcha is needed (as it gets disabled after a while).
+- ERROR_INTERVAL: Time to sleep/wait when there's an error.
+- URLMAX_TIMEOUT: Max time used for the request (in order to avoid pending/stuck requests).
+- HOST: ie. 'https://www.ticketswap.nl' you can change this for .com, .de, etc.
+- EVENT_URL = You can get this URL from the event page that you want to look for. 
 
 # Contribution:
 
-You are more than welcome to creat a PR if there's anything you want to add to this script.
+First of all thank the original author: 'ducdigital'
+Improve the code as you want!

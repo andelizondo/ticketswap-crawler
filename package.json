@@ -1,7 +1,7 @@
 {
-  "name": "ticketswap-watch",
-  "version": "1.0.0",
-  "description": "Watch for new ticket on ticketswap ",
+  "name": "ticketswap-crawler",
+  "version": "1.2.1",
+  "description": "TicketSwap Crawler",
   "main": "app.js",
   "dependencies": {
     "cheerio": "^0.20.0",
@@ -16,15 +16,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ducdigital/ticketswap-watch.git"
+    "url": "git+https://github.com/andelizondo/ticketswap-crawler.git"
   },
   "keywords": [
     "ticketswap"
   ],
-  "author": "DucDigital",
+  "author": "DucDigital, improved by AcEsX",
   "license": "WTFPL",
   "bugs": {
-    "url": "https://github.com/ducdigital/ticketswap-watch/issues"
+    "url": "https://github.com/andelizondo/ticketswap-crawler/issues"
   },
-  "homepage": "https://github.com/ducdigital/ticketswap-watch#readme"
+  "homepage": "https://github.com/andelizondo/ticketswap-crawler#readme"
 }
