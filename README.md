@@ -38,4 +38,7 @@ The most important change from the original script, is that this bot runs only o
 # Contribution:
 
 First of all thank the original author: 'ducdigital'
+
 Improve the code as you want!
+
+SHARE!
