@@ -6,10 +6,12 @@ Are you tired to check TicketSwap every minute (or even every few seconds) for a
 
 The TicketSwap Crawler does exactly this for you (and it never gets tired)!
 
-This smart bot opens your default browser window as soon as you receive as there is a new ticket available!
+This smart bot opens your default browser window as soon as there is a new ticket available!
 
 Note: The bot only opens the page with the available ticket, and you have to reserve the ticket yourself!
-...or get a macro player such as 'Keyboard Maestro' and execute this little javascript code when the browser get activated... $('.btn-buy:not(loading)')[0].click();
+...or get a macro player such as 'Keyboard Maestro' and execute this little javascript code when the browser get activated... 
+
+$('.btn-buy:not(loading)')[0].click();
 
 # How to use
 
