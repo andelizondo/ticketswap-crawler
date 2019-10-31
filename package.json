@@ -10,7 +10,9 @@
     "lodash": "^4.13.1",
     "node-notifier": "^4.6.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "cli-color": "^2.0.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
