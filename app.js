@@ -6,6 +6,7 @@ const request = require('co-request');
 const cheerio = require('cheerio');
 const _ = require('lodash');
 const exec = require('child_process').exec;
+const clc = require('cli-color');
 
 // APP SETTINGS
 const CHECK_INTERVAL = 2;
@@ -18,45 +19,71 @@ const HOST = 'https://www.ticketswap.nl';
 const EVENT_URL = '/event/milkshake-festival-2017/sunday/68fc1cc6-6b98-4c4c-b828-2c7fa712c579/128371';
 //const EVENT_URL = '/event/a-campingflight-to-lowlands-paradise/regular/fcc6c783-6b32-4abd-8fe6-e9d0369c14df/20635';
 
+const TRANSLATION_DEFAULTS = {
+    sold: 'Sold',
+    soldOut: 'Currently no tickets available',
+    available: 'Available',
+    ticket: '1 ticket',
+    tickets: '{{count}} tickets',
+    reserved: 'reserved'
+};
+
 // APP VARIABLES
 let sleepTime;
 let soldListings;
 
 // MAIN APP
-let ticketCrawler = function () {
+const ticketCrawler = () => {
     return co(function* () {
         sleepTime = CHECK_INTERVAL;
-        let result = yield buildRequest(HOST + EVENT_URL, 'GET');
-        let $ = cheerio.load(result.body);
+        const result = yield buildRequest(HOST + EVENT_URL, 'GET');
+        const $ = cheerio.load(result.body);
 
-        let availableListings = $('.listings-item:not(.listings-item--not-for-sale) a');
+        const translations = getTranslations($);
+        let availableListings = [];
+
+        if ($('[data-testid="available-h2"]').length > 0) {
+            availableListings = $('#tickets div:first-of-type ul a')
+        }
+      
         if (availableListings.length > 0) {
-            print(`\n    ********************* Found ${availableListings.length} available listing(s)! *******************`);
+            const ammountTranslation = availableListings.length > 1 ? translations.tickets.replace('{{count}}', availableListings.length) : translations.ticket;
 
-            let linksFn = {};
+            print(clc.green.bold(`\n    ********************* ${ammountTranslation} ${translations.available}! *******************`.toUpperCase()));
+
+            const linksFn = {};
+
             availableListings.each((index, listing) => {
-                let fetchUrl = HOST + _.get(listing, 'attribs.href');
-                if (fetchUrl.includes('listing'))
+                const fetchUrl = HOST + _.get(listing, 'attribs.href');
+
+                if (fetchUrl.includes('listing')) {
                     linksFn[fetchUrl] = fetchResult(fetchUrl);
+                }
             });
 
-            let linksResults = yield linksFn;
-            _.each(linksResults, function ($query, url) {
-                let amount = $query('#listing-show-amount > option').length;
-                if (parseInt(amount) > 0)
-                    return botAction.availableTicket(url, amount);
-                else
-                    botAction.reservedTicket(url);
+            const linksResults = yield linksFn;
+
+            _.each(linksResults, ($query, url) => {
+                const amount = $query('#ticket-dropdown > option').length;
+                const ammountTranslation = amount > 1 ? translations.tickets.replace('{{count}}', amount) : translations.ticket;
+
+                if (parseInt(amount) > 0) {
+                    botAction.availableTicket(url, ammountTranslation, translations.available);
+                } else {
+                    botAction.reservedTicket(url, translations.ticket, translations.reserved);
+                }
             });
         }
         else {
-            let updatedSoldListings = $('.counter-sold .counter-value').text();
-            if ($('#recaptcha').length > 0)
+            const updatedSoldListings = $(`span:contains(${translations.sold})`).prev('h2').text();
+
+            if ($('#recaptcha').length > 0) {
                 botAction.robotCheck(HOST + EVENT_URL);
-            else if (parseInt(updatedSoldListings) >= 0)
-                botAction.noTickets(updatedSoldListings);
-            else
+            } else if (parseInt(updatedSoldListings) >= 0) {
+                botAction.noTickets(updatedSoldListings, translations.sold, translations.soldOut, translations.tickets, translations.ticket);
+            } else {
                 botAction.invalidURL(HOST + EVENT_URL);
+            }
         }
         // Using 'sleep' keeps the execution in one single instance.
         sleep(sleepTime);
@@ -67,35 +94,47 @@ let ticketCrawler = function () {
 };
 
 // BOT FUNCTIONS
-let botAction = {
-    availableTicket: function (url, amount) {
+const botAction = {
+    availableTicket: (url, ammountTranslation, availableTranslation) => {
         exec(`open ${url}`);
         sleepTime = FOUND_INTERVAL;
-        print(`${amount} TICKET(S) AVAILABLE!: \n${url}`);
+
+        const msg = `${ammountTranslation} ${availableTranslation}!:`.toUpperCase();
+
+        print(clc.green(`${msg} \n${url}`));
         return false; // STOPS 'EACH 'LOOP
     },
-    reservedTicket: function (url) {
-        print(`TICKET RESERVED: \n${url}`);
+    reservedTicket: (url, ticketTranslation, reservedTranslation) => {
+        const msg = `${ticketTranslation} ${reservedTranslation}:`.toUpperCase();
+
+        print(clc.yellow(`${msg} \n${url}`));
     },
-    noTickets: function (updatedSoldListings) {
-        if (soldListings && updatedSoldListings != soldListings)
-            var newListings = `${updatedSoldListings - soldListings} Ticket(s) recently sold.`;
-        print(`No new tickets found... ${updatedSoldListings} Sold. ${newListings || ''}`);
+    noTickets: (updatedSoldListings, soldTranslation, soldOutTranslation, ticketsTranslation, ticketTranslation) => {
+        let newListings = ''
+
+        if (soldListings && updatedSoldListings !== soldListings) {
+            const recentlySoldAmmount = updatedSoldListings - soldListings;
+            const ammountTranslation = recentlySoldAmmount > 1 ? ticketsTranslation.replace('{{count}}', recentlySoldAmmount) : ticketTranslation;
+
+            newListings = `${ammountTranslation} ${soldTranslation}`.toLowerCase();
+        }
+        print(clc.red(`${soldOutTranslation}... ${updatedSoldListings} ${soldTranslation.toLowerCase()}. ${newListings}`));
         soldListings = updatedSoldListings;
     },
-    robotCheck: function (url) {
+    robotCheck: (url) => {
         sleepTime = ROBOT_INTERVAL;
         print(`Need to check captcha: \n${url}`);
     },
-    invalidURL: function (url) {
+    invalidURL: (url) => {
         sleepTime = ERROR_INTERVAL;
         print(`Invalid URL: \n${url}`);
     },
 };
 
 // REQUEST FUNCTIONS
-let cookieJar = request.jar();
-let buildRequest = function (uri, method) {
+const cookieJar = request.jar();
+
+const buildRequest = (uri, method) => {
     return request({
         uri: uri,
         method: method,
@@ -107,25 +146,51 @@ let buildRequest = function (uri, method) {
         timeout: URLMAX_TIMEOUT
     });
 };
-let fetchResult = function (link) {
+
+const fetchResult = (link) => {
     return co(function *() {
-        let result = yield buildRequest(link, 'GET');
+        const result = yield buildRequest(link, 'GET');
         return cheerio.load(result.body);
     });
 };
 
 // EXECUTION FUNCTIONS
-let sleep = function (seconds) {
+const sleep = (seconds) => {
     return new Promise(resolve => setTimeout(resolve, seconds * 1000)).then(() => { ticketCrawler(); });
 };
-let print = function (toPrint) {
-    console.log(`${new Date(Date.now()).toLocaleTimeString()}> ${toPrint}`);
+
+const print = (toPrint) => {
+    console.log(`${new Date(Date.now()).toLocaleTimeString()} - ${toPrint}`);
 };
+ 
+const getTranslations = ($) => {
+    const settings = JSON.parse($('#__NEXT_DATA__').html());
+
+    if (!_.get(settings, 'props')) {
+        return TRANSLATION_DEFAULTS;
+    }
+
+    const language = settings.props.initialLanguage;
+    const { event, common} = settings.props.initialI18nStore[language];
+
+    const translations = {
+        sold: event.listings.sold,
+        soldOut: event.listings.soldOut.title,
+        available: event.listings.available,
+        ticket: common.tickets.amount,
+        tickets: common.tickets.amount_plural,
+        reserved: event.listings.reserved
+    }
+
+    return { ...TRANSLATION_DEFAULTS, ...translations };
+}
 
 // INITIALIZE
-print(`\n
+print(
+    clc.cyan(`\n
     ************************************************************************
     Welcome to TicketSwap crawler!
     Searching for tickets for: ${EVENT_URL.split('/')[2].replace(/-/g, ' ').toUpperCase()}
-    ************************************************************************\n`);
+    ************************************************************************\n`)
+    );
 ticketCrawler();
